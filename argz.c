@@ -113,9 +113,6 @@ argz_scan_ulong(unsigned long *val, const char **end, const char *s)
     unsigned long x = 0;
     int i = 0;
 
-    if (s[i] == '-')
-        return -1;
-
     if (s[i] == '+')
         i++;
 
