@@ -21,7 +21,7 @@ argz_cmp(const char *a, const char *s)
     if (!a || !s)
         return -1;
 
-    for (size_t i = 0; a && s && a[i]; i++) {
+    for (size_t i = 0; a[i]; i++) {
         if (i && a[i - 1] != '|')
             continue;
         for (size_t j = 0; a[i + j] == s[j] || a[i + j] == '|'; j++)
@@ -116,7 +116,7 @@ argz_scan_ulong(unsigned long *val, const char **end, const char *s)
     if (s[i] == '+')
         i++;
 
-    while (s[i] && s[i] >= '0' && s[i] <= '9') {
+    while (s[i] >= '0' && s[i] <= '9') {
         unsigned long y = 10UL * x + (s[i++] - '0');
 
         if (x && x >= y)
