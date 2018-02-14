@@ -11,4 +11,4 @@ compiler:
     - gcc
 
 script:
-    - make argz.o
+    - make CFLAGS=-std=c99 argz.o
