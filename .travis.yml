@@ -1,0 +1,14 @@
+sudo: false
+
+language: c
+
+os:
+    - linux
+    - osx
+
+compiler:
+    - clang
+    - gcc
+
+script:
+    - make argz.o
