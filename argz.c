@@ -2,6 +2,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <arpa/inet.h>
 
 static int
 argz_print(const char *fmt, ...)
@@ -245,6 +246,33 @@ argz_str(void *data, int argc, char **argv)
         *(char **)data = argv[0];
 
     return 1;
+}
+
+int
+argz_addr(void *data, int argc, char **argv)
+{
+    if (argc < 1 || !argv[0])
+        return -1;
+
+    struct sockaddr_in sin = {
+        .sin_family = AF_INET
+    };
+
+    if (inet_pton(AF_INET, argv[0], &sin.sin_addr) == 1) {
+        *((struct sockaddr_in *)data) = sin;
+        return 1;
+    }
+
+    struct sockaddr_in6 sin6 = {
+        .sin6_family = AF_INET6
+    };
+
+    if (inet_pton(AF_INET6, argv[0], &sin6.sin6_addr) == 1) {
+        *((struct sockaddr_in6 *)data) = sin6;
+        return 1;
+    }
+
+    return -1;
 }
 
 int

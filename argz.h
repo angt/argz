@@ -9,6 +9,7 @@ struct argz {
     int ret;
 };
 
+int argz_addr   (void *, int, char **);
 int argz_ulong  (void *, int, char **);
 int argz_uint   (void *, int, char **);
 int argz_ushort (void *, int, char **);
