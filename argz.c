@@ -301,7 +301,7 @@ argz_option(void *data, int argc, char **argv)
         int s = i + !!argz[k].name;
         int ret = argz[k].call(argz[k].data, argc - s, argv + s);
 
-        argz[k].set = argz[k].kind ? argv[s] : argv[i];
+        argz[k].set = argz[k].data ? argv[s] : argv[i];
         argz[k].ret = ret;
 
         if (ret <= -2)
@@ -313,7 +313,7 @@ argz_option(void *data, int argc, char **argv)
         }
     }
 
-    return i;
+    return i ?: -1;
 }
 
 int
@@ -331,6 +331,10 @@ static int
 argz_print_error(struct argz *argz, const char *name)
 {
     for (int k = 0; argz[k].call; k++) {
+        if (argz[k].data && argz[k].call == argz_option)
+            if (argz_print_error(argz[k].data, argz[k].name))
+                return 1;
+
         const char *n = argz[k].name ?: name;
 
         if (argz[k].ret == -1) {
@@ -343,10 +347,6 @@ argz_print_error(struct argz *argz, const char *name)
             }
             return 1;
         }
-
-        if (argz[k].data && argz[k].call == argz_option)
-            if (argz_print_error(argz[k].data, argz[k].name))
-                return 1;
 
         if (argz[k].ret == -2) {
             argz_print("error: %s is already set to `%s'\n", n, argz[k].set);
@@ -395,18 +395,19 @@ argz_print_usage(struct argz *argz, int slen)
 int
 argz(struct argz *argz, int argc, char **argv)
 {
-    if (argc >= 1) {
-        int ret = argz_option(argz, argc - 1, argv + 1);
+    if (argc < 2)
+        return 0;
 
-        if (ret == argc - 1)
-            return 0;
+    int ret = argz_option(argz, argc - 1, argv + 1);
 
-        if (argz_print_error(argz, argv[0]))
-            return 1;
+    if (ret == argc - 1)
+        return 0;
 
-        if (ret >= 0 && ret < argc - 1)
-            argz_print("error: `%s' is unknown\n", argv[ret + 1]);
-    }
+    if (argz_print_error(argz, argv[0]))
+        return 1;
+
+    if (ret < argc -1)
+        argz_print("error: `%s' is unknown\n", argv[ret == -1 ? 1 : ret + 1]);
 
     int slen = argz_print("usage: %s", argv[0]);
 
