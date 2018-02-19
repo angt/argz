@@ -12,6 +12,7 @@ struct argz {
 int argz_addr   (void *, int, char **);
 int argz_ulong  (void *, int, char **);
 int argz_uint   (void *, int, char **);
+int argz_bool   (void *, int, char **);
 int argz_ushort (void *, int, char **);
 int argz_bytes  (void *, int, char **);
 int argz_time   (void *, int, char **);

@@ -237,6 +237,29 @@ argz_time(void *data, int argc, char **argv)
 }
 
 int
+argz_bool(void *data, int argc, char **argv)
+{
+    if (argc < 1 || !argv[0])
+        return -1;
+
+    int val = -1;
+
+    if (!argz_cmp("1|on|yes|true", argv[0]))
+        val = 1;
+
+    if (!argz_cmp("0|off|no|false", argv[0]))
+        val = 0;
+
+    if (val < 0)
+        return -1;
+
+    if (data)
+        *(int *)data = val;
+
+    return 1;
+}
+
+int
 argz_str(void *data, int argc, char **argv)
 {
     if (argc < 1 || !argv[0])
