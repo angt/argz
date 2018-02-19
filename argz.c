@@ -320,8 +320,13 @@ int
 argz_is_set(struct argz *argz, const char *name)
 {
     for (int k = 0; argz[k].call; k++) {
-        if (!argz_cmp(argz[k].set, name))
-            return 1;
+        if (argz_cmp(argz[k].name, name))
+            continue;
+
+        if (argz[k].data)
+            return argz[k].ret > 0;
+
+        return !argz_cmp(argz[k].set, name);
     }
 
     return 0;
