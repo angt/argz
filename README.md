@@ -16,12 +16,12 @@ main(int argc, char **argv)
     struct argz timeoutz[] = {
         {NULL, "SECONDS", &timeout, argz_time},
         {"infinity|auto", NULL, NULL, argz_option},
-        {}};
+        {NULL}};
 
     struct argz mainz[] = {
         {"size", "BYTES", &size, argz_bytes},
         {"timeout", NULL, &timeoutz, argz_option},
-        {}};
+        {NULL}};
 
     if (argz(mainz, argc, argv))
         return 1;
