@@ -18,5 +18,7 @@ int argz_bytes  (void *, int, char **);
 int argz_time   (void *, int, char **);
 int argz_str    (void *, int, char **);
 int argz_option (void *, int, char **);
-int argz_is_set (struct argz *, const char *);
-int argz        (struct argz *, int, char **);
+
+void argz_dump   (struct argz *, const char *);
+int  argz_is_set (struct argz *, const char *);
+int  argz        (struct argz *, int, char **);

@@ -355,6 +355,17 @@ argz_is_set(struct argz *argz, const char *name)
     return 0;
 }
 
+void
+argz_dump(struct argz *argz, const char *name)
+{
+    for (int k = 0; argz[k].call; k++) {
+        argz_print("[DUMP] %s: name=%s kind=%s set=%s ret=%i\n",
+                   name, argz[k].name, argz[k].kind, argz[k].set, argz[k].ret);
+        if (argz[k].data && argz[k].call == argz_option)
+            argz_dump(argz[k].data, argz[k].name);
+    }
+}
+
 static int
 argz_print_error(struct argz *argz, const char *name)
 {
