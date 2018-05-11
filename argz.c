@@ -308,6 +308,9 @@ argz_option(void *data, int argc, char **argv)
     int i = 0;
 
     for (int k = 0; i < argc && argz[k].call; k++) {
+        if (!argz_cmp("help", argv[i]))
+            return -3;
+
         if (argz[k].name) {
             if (argz_cmp(argz[k].name, argv[i]))
                 continue;
@@ -328,7 +331,7 @@ argz_option(void *data, int argc, char **argv)
         argz[k].ret = ret;
 
         if (ret <= -2)
-            return -2;
+            return ret;
 
         if (ret >= 0) {
             k = -1;
@@ -445,7 +448,7 @@ argz(struct argz *argz, int argc, char **argv)
     if (argz_print_error(argz, argv[0]))
         return 1;
 
-    if (ret < argc -1)
+    if (ret > -2 && ret < argc - 1)
         argz_print("error: `%s' is unknown\n", argv[ret == -1 ? 1 : ret + 1]);
 
     int slen = argz_print("usage: %s", argv[0]);
