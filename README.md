@@ -1,10 +1,9 @@
 # arg(z)
 
-A simple demo is worth a thousand words
-
+The minimal command line library.
 
 ```
-$ cat ./test.c
+$ cat readme.c
 #include "argz.c"
 
 int
@@ -35,42 +34,49 @@ main(int argc, char **argv)
 }
 ```
 
-a simple run gives:
+Run it without argument and you get
+
 ```
-$ ./test
+$ ./readme
 size=1024
 timeout=5000 infinity=0 auto=0
 ```
 
-generated usage on bad options:
+A minimal help command is automatically generated
+
 ```
-$ ./test help
-error: `help' is unknown
-usage: ./test [size BYTES]
-              [timeout SECONDS
-                       [infinity|auto]]
+$ ./readme help
+usage: ./readme [size BYTES]
+                [timeout SECONDS
+                         [infinity|auto]]
 ```
 
-a simple example:
+Size and time accept suffixes
+
 ```
-$ ./test size 1G
+$ ./readme size 1G timeout 10s
 size=1073741824
-timeout=5000 infinity=0 auto=0
-```
-```
-$ ./test size NAN
-error: `NAN' is not a valid BYTES for size
+timeout=10000 infinity=0 auto=0
 ```
 
-duplicate options are allowed:
+Bad args are reported
+
 ```
-$ ./test timeout 1s timeout infinity
+$ ./readme size NaN timeout 10s
+error: `NaN' is not a valid BYTES for size
+```
+
+Duplicate options are allowed, and yes, I explicitly coded it.
+
+```
+$ ./readme timeout 1s timeout infinity
 size=1024
 timeout=1000 infinity=1 auto=0
 ```
 
-but not duplicate args:
+Duplicate arguments are not allowed
+
 ```
-$ ./test timeout 1s auto infinity
+$ ./readme timeout 1s auto infinity
 error: infinity|auto is already set to `auto'
 ```
