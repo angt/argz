@@ -308,8 +308,10 @@ argz_option(void *data, int argc, char **argv)
     int i = 0;
 
     for (int k = 0; i < argc && argz[k].call; k++) {
-        if (!argz_cmp("help", argv[i]))
+        if (!argz_cmp("help", argv[i])) {
+            argz[k].ret = 0;
             return -3;
+        }
 
         if (argz[k].name) {
             if (argz_cmp(argz[k].name, argv[i]))
