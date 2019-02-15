@@ -34,55 +34,44 @@ argz_cmp(const char *a, const char *s)
 }
 
 static int
-argz_scan_size2(size_t *val, const char *s)
+argz_scan_size(size_t *val, const char *s)
 {
     if (!s)
         return 0;
 
-    if (s[0] && s[1])
-        return -1;
-
-    unsigned i = 0;
+    int n = 0;
 
     switch (s[0]) {
-        default : return -1;
-        case  0 : return 0;
-        case 'G': i += 10; /* FALLTHRU */
-        case 'M': i += 10; /* FALLTHRU */
-        case 'K': i += 10; /* FALLTHRU */
+        case 'g':           /* FALLTHRU */
+        case 'G': n++;      /* FALLTHRU */
+        case 'm':           /* FALLTHRU */
+        case 'M': n++;      /* FALLTHRU */
+        case 'k':           /* FALLTHRU */
+        case 'K': n++; s++; /* FALLTHRU */
     }
 
-    if (val) {
-        const size_t x = *val;
-        const size_t y = x << i;
-
-        if (!i || (x != (y >> i)))
-            return -1;
-
-        *val = y;
-    }
-
-    return 0;
-}
-
-static int
-argz_scan_size10(size_t *val, const char *s)
-{
-    if (!s)
-        return 0;
-
-    if (s[0] && s[1])
-        return -1;
-
+    size_t c = 1024;
     size_t i = 1;
+    int bits = 0;
 
-    switch (s[0]) {
-        default : return -1;
-        case  0 : return 0;
-        case 'G': i *= 1000; /* FALLTHRU */
-        case 'M': i *= 1000; /* FALLTHRU */
-        case 'K': i *= 1000; /* FALLTHRU */
+    if (s[0]) {
+        if (s[0] == 'i') {
+            s++;
+        } else {
+            c = 1000;
+        }
     }
+
+    if (s[0]) {
+        if (!argz_cmp("b|bit|bits", s)) {
+            bits = 3;
+        } else if (argz_cmp("B|byte|bytes", s)) {
+            return -1;
+        }
+    }
+
+    while (n--)
+        i *= c;
 
     if (val) {
         const size_t x = *val;
@@ -91,7 +80,7 @@ argz_scan_size10(size_t *val, const char *s)
         if (!i || (x != (y / i)))
             return -1;
 
-        *val = y;
+        *val = (y >> bits);
     }
 
     return 0;
@@ -237,28 +226,7 @@ argz_bytes(void *data, int argc, char **argv)
     size_t val = tmp;
 
     if (ret || (tmp != (unsigned long)val)
-            || (argz_scan_size2(&val, end)))
-        return -1;
-
-    if (data)
-        *(size_t *)data = val;
-
-    return 1;
-}
-
-int
-argz_size(void *data, int argc, char **argv)
-{
-    if (argc < 1 || !argv[0])
-        return -1;
-
-    unsigned long tmp = 0;
-    const char *end = NULL;
-    int ret = argz_scan_ulong(&tmp, &end, argv[0]);
-    size_t val = tmp;
-
-    if (ret || (tmp != (unsigned long)val)
-            || (argz_scan_size10(&val, end)))
+            || (argz_scan_size(&val, end)))
         return -1;
 
     if (data)

@@ -15,7 +15,6 @@ int argz_uint   (void *, int, char **);
 int argz_bool   (void *, int, char **);
 int argz_ushort (void *, int, char **);
 int argz_bytes  (void *, int, char **);
-int argz_size   (void *, int, char **);
 int argz_time   (void *, int, char **);
 int argz_str    (void *, int, char **);
 int argz_option (void *, int, char **);
