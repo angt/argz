@@ -136,7 +136,7 @@ argz_scan_ulong(unsigned long *val, const char **end, const char *s)
         i++;
 
     while (s[i] >= '0' && s[i] <= '9') {
-        unsigned long y = 10UL * x + (s[i++] - '0');
+        unsigned long y = 10UL * x + (unsigned long)(s[i++] - '0');
 
         if (x && x >= y)
             return -1;
@@ -181,7 +181,7 @@ argz_uint(void *data, int argc, char **argv)
     unsigned long tmp = 0;
     const char *end = NULL;
     int ret = argz_scan_ulong(&tmp, &end, argv[0]);
-    unsigned int val = tmp;
+    unsigned int val = (unsigned int)tmp;
 
     if (ret || (tmp != (unsigned long)val)
             || (end && end[0]))
@@ -202,7 +202,7 @@ argz_ushort(void *data, int argc, char **argv)
     unsigned long tmp = 0;
     const char *end = NULL;
     int ret = argz_scan_ulong(&tmp, &end, argv[0]);
-    unsigned short val = tmp;
+    unsigned short val = (unsigned short)tmp;
 
     if (ret || (tmp != (unsigned long)val)
             || (end && end[0]))
