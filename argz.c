@@ -3,6 +3,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 static int
 argz_print(const char *fmt, ...)
