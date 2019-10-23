@@ -196,6 +196,27 @@ argz_uint(void *data, int argc, char **argv)
 }
 
 int
+argz_percent(void *data, int argc, char **argv)
+{
+    if (argc < 1 || !argv[0])
+        return -1;
+
+    unsigned long tmp = 0;
+    const char *end = NULL;
+    int ret = argz_scan_ulong(&tmp, &end, argv[0]);
+    unsigned int val = (unsigned int)tmp;
+
+    if (ret || (tmp > 100UL)
+            || (end && end[0] && (end[0] != '%' || end[1])))
+        return -1;
+
+    if (data)
+        *(unsigned int *)data = val;
+
+    return 1;
+}
+
+int
 argz_ushort(void *data, int argc, char **argv)
 {
     if (argc < 1 || !argv[0])
