@@ -1,28 +1,40 @@
 #include "argz.c"
 
 int
+readme_percent_suffix(struct argz_ull *ull, const char *s)
+{
+    return s && s[0] && strcmp(s, "%");
+}
+
+int
 main(int argc, char **argv)
 {
-    size_t size = 1024;
-    unsigned long timeout = 5000;
+    struct argz_ull size = {
+        .min = 1,
+        .suffix = argz_size_suffix,
+    };
+    struct argz_ull time = {
+        .suffix = argz_time_suffix,
+    };
+    struct argz_ull percent = {
+        .min = 0, .max = 100, .value = 50,
+        .suffix = readme_percent_suffix,
+    };
+    struct argz_path file = {0};
+    struct argz z[] = {
+        {"size" , "a size value", argz_ull, &size},
+        {"time" , "a time value", argz_ull, &time},
+        {"percent", "a custom percent value", argz_ull, &percent},
+        {"file", "a file value", argz_path, &file},
+        {0}};
 
-    struct argz timeoutz[] = {
-        {NULL, "SECONDS", &timeout, argz_time},
-        {"infinity|auto", NULL, NULL, argz_option},
-        {NULL}};
+    int err = argz(argc, argv, z);
 
-    struct argz mainz[] = {
-        {"size", "BYTES", &size, argz_bytes},
-        {"timeout", NULL, &timeoutz, argz_option},
-        {NULL}};
+    if (err)
+        return err;
 
-    if (argz(mainz, argc, argv))
-        return 1;
-
-    printf("size=%zu\n", size);
-    printf("timeout=%lu infinity=%i auto=%i\n", timeout,
-           argz_is_set(timeoutz, "infinity"),
-           argz_is_set(timeoutz, "auto"));
+    printf("size=%llu time=%llu percent=%llu file=%s\n",
+            size.value, time.value, percent.value, file.path ? file.path : "");
 
     return 0;
 }

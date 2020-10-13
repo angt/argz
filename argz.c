@@ -1,106 +1,173 @@
+#define _GNU_SOURCE
+
+#include <errno.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "argz.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
+#ifndef ARGZ_LEN
+#define ARGZ_LEN 10
+#endif
 
-static int
-argz_print(const char *fmt, ...)
+int
+argz_help(int argc, char **argv)
 {
-    va_list ap;
-
-    va_start(ap, fmt);
-    int ret = vfprintf(stdout, fmt, ap);
-    va_end(ap);
-
-    return (ret < 0) ? 0 : ret;
-}
-
-static int
-argz_cmp(const char *a, const char *s)
-{
-    if (!a || !s)
-        return -1;
-
-    for (size_t i = 0; a[i]; i++) {
-        if (i && a[i - 1] != '|')
-            continue;
-        for (size_t j = 0; a[i + j] == s[j] || a[i + j] == '|'; j++)
-            if (!s[j])
-                return 0;
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "help"))
+            return 1;
     }
-
-    return -1;
-}
-
-static int
-argz_scan_size(size_t *val, const char *s)
-{
-    if (!s)
-        return 0;
-
-    int n = 0;
-
-    switch (s[0]) {
-        case 'g':           /* FALLTHRU */
-        case 'G': n++;      /* FALLTHRU */
-        case 'm':           /* FALLTHRU */
-        case 'M': n++;      /* FALLTHRU */
-        case 'k':           /* FALLTHRU */
-        case 'K': n++; s++; /* FALLTHRU */
-    }
-
-    size_t c = 1024;
-    size_t i = 1;
-    int bits = 0;
-
-    if (s[0]) {
-        if (s[0] == 'i') {
-            s++;
-        } else {
-            c = 1000;
-        }
-    }
-
-    if (s[0]) {
-        if (!argz_cmp("b|bit|bits", s)) {
-            bits = 3;
-        } else if (argz_cmp("B|byte|bytes", s)) {
-            return -1;
-        }
-    }
-
-    while (n--)
-        i *= c;
-
-    if (val) {
-        const size_t x = *val;
-        const size_t y = x * i;
-
-        if (!i || (x != (y / i)))
-            return -1;
-
-        *val = (y >> bits);
-    }
-
     return 0;
 }
 
+int argz_help_me(int argc, char **argv)
+{
+    return argz_help(argc > 2 ? 2 : argc, argv);
+}
+
 static int
-argz_scan_time(unsigned long *val, const char *s)
+argz_cmp(struct argz *z, const char *name)
+{
+    if (!strcmp(z->name, name))
+        return 0;
+    if (z->alt) for (unsigned k = 0; z->alt[k]; k++) {
+        if (!strcmp(z->alt[k], name))
+            return 0;
+    }
+    return 1;
+}
+
+static int
+argz_is_available(struct argz *z, unsigned i, unsigned *ret)
+{
+    if (z[i].set)
+        return 0;
+    if (z[i].grp) for (unsigned k = 0; z[k].name; k++) {
+        if (z[k].set && z[k].grp == z[i].grp) {
+            if (ret) *ret = k;
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int
+argz_is_set(struct argz *z, const char *name)
+{
+    if (z) for (unsigned i = 0; z[i].name; i++) {
+        if (argz_cmp(&z[i], name))
+            continue;
+        return z[i].set;
+    }
+    return 0;
+}
+
+void
+argz_print_help(const char *name, const char *help)
+{
+    printf("    %-*s    %s\n", ARGZ_LEN, name, help ? help : "");
+}
+
+void
+argz_print(struct argz *z)
+{
+    if (z) for (int i = 0; z[i].name; i++) {
+        if (!argz_is_available(z, i, NULL))
+            continue;
+        argz_print_help(z[i].name, z[i].help);
+    }
+}
+
+int
+argz_str(int argc, char **argv, void *data)
+{
+    if (argz_help_me(argc, argv)) {
+        const char *str = *(const char **)data;
+        if (str && *str)
+            printf("%s\n", str);
+    } else if (argc > 1) {
+        memcpy(data, &argv[1], sizeof(char *));
+        return argc - 2;
+    } else {
+        fprintf(stderr, "Option %s requires a value\n", argv[0]);
+    }
+    return -1;
+}
+
+int
+argz_path(int argc, char **argv, void *data)
+{
+    struct argz_path *z = (struct argz_path *)data;
+
+    if (argz_help_me(argc, argv)) {
+        if (z->dir) {
+            printf("DIR\n");
+        } else {
+            printf("FILE\n");
+        }
+    } else if (argc > 1) {
+        z->path = argv[1];
+        return argc - 2;
+    } else {
+        fprintf(stderr, "Option %s requires a path\n", argv[0]);
+    }
+    return -1;
+}
+
+int
+argz_ull(int argc, char **argv, void *data)
+{
+    struct argz_ull *z = (struct argz_ull *)data;
+
+    if (argz_help_me(argc, argv)) {
+        printf("%llu\n", z->value);
+    } else if (argc > 1) {
+        char *end = NULL;
+        z->value = (errno = 0, strtoull(argv[1], &end, z->base));
+        if (errno == ERANGE) {
+            fprintf(stderr, "Option %s is out of range\n", argv[0]);
+            return -1;
+        }
+        if (errno || end == argv[1]) {
+            fprintf(stderr, "Option %s is not a valid number\n", argv[0]);
+            return -1;
+        }
+        if ((z->suffix && z->suffix(z, end)) || (!z->suffix && end && *end)) {
+            fprintf(stderr, "Option %s is badly suffixed\n", argv[0]);
+            return -1;
+        }
+        if (z->min && (z->value < z->min)) {
+            fprintf(stderr, "Option %s must be a number greater than or equal to %llu\n",
+                    argv[0], z->min);
+            return -1;
+        }
+        if (z->max && (z->value > z->max)) {
+            fprintf(stderr, "Option %s must be a number less than or equal to %llu\n",
+                    argv[0], z->max);
+            return -1;
+        }
+        return argc - 2;
+    } else {
+        fprintf(stderr, "Option %s requires a number\n", argv[0]);
+    }
+    return -1;
+}
+
+int
+argz_time_suffix(struct argz_ull *ull, const char *s)
 {
     if (!s)
         return 0;
 
-    if (s[0] == 'm' && s[1] == 's' && s[2] == 0)
+    if (!strcmp(s, "ms"))
         return 0;
 
     if (s[0] && s[1])
         return -1;
 
-    unsigned long i = 1;
+    unsigned long long i = 1;
 
     switch (s[0]) {
         default : return -1;
@@ -111,398 +178,87 @@ argz_scan_time(unsigned long *val, const char *s)
         case  0 :            /* FALLTHRU */
         case 's': i *= 1000; /* FALLTHRU */
     }
+    if (!i || ull->value > ULLONG_MAX / i)
+        return -1;
 
-    if (val) {
-        const unsigned long x = *val;
-        const unsigned long y = x * i;
-
-        if (!i || (x != (y / i)))
-            return -1;
-
-        *val = y;
-    }
-
+    ull->value *= i;
     return 0;
 }
 
-static int
-argz_scan_ulong(unsigned long *val, const char **end, const char *s)
+int
+argz_size_suffix(struct argz_ull *ull, const char *s)
 {
     if (!s)
+        return 0;
+
+    unsigned n = 0;
+
+    switch (s[0]) {
+        case 'g':           /* FALLTHRU */
+        case 'G': n++;      /* FALLTHRU */
+        case 'm':           /* FALLTHRU */
+        case 'M': n++;      /* FALLTHRU */
+        case 'k':           /* FALLTHRU */
+        case 'K': n++; s++; /* FALLTHRU */
+    }
+
+    unsigned long long c = 1024;
+    unsigned long long i = 1;
+
+    if (s[0] == 'i') {
+        s++;
+    } else if (s[0]) {
+        c = 1000;
+    }
+    while (n--)
+        i *= c;
+
+    if (!strcmp(s, "b") || !strcasecmp(s, "bit")
+                        || !strcasecmp(s, "bits")) {
+        i >>= 3;
+    } else if (s[0] && strcmp(s, "B") && strcasecmp(s, "byte")
+                                      && strcasecmp(s, "bytes")) {
+        return -1;
+    }
+    if (!i || ull->value > ULLONG_MAX / i)
         return -1;
 
-    unsigned long x = 0;
-    int i = 0;
+    ull->value *= i;
+    return 0;
+}
 
-    if (s[i] == '+')
-        i++;
+int
+argz(int argc, char **argv, void *data)
+{
+    struct argz *z = (struct argz *)data;
+    int a = 1;
 
-    while (s[i] >= '0' && s[i] <= '9') {
-        unsigned long y = 10UL * x + (unsigned long)(s[i++] - '0');
-
-        if (x && x >= y)
+    while (a < argc) {
+        if (!strcmp(argv[a], "help")) {
+            argz_print(z);
             return -1;
-
-        x = y;
-    }
-
-    if (!i)
-        return -1;
-
-    if (end) *end = &s[i];
-    if (val) *val = x;
-
-    return 0;
-}
-
-int
-argz_ulong(void *data, int argc, char **argv)
-{
-    if (argc < 1 || !argv[0])
-        return -1;
-
-    unsigned long val = 0;
-    const char *end = NULL;
-    int ret = argz_scan_ulong(&val, &end, argv[0]);
-
-    if (ret || (end && end[0]))
-        return -1;
-
-    if (data)
-        *(unsigned long *)data = val;
-
-    return 1;
-}
-
-int
-argz_uint(void *data, int argc, char **argv)
-{
-    if (argc < 1 || !argv[0])
-        return -1;
-
-    unsigned long tmp = 0;
-    const char *end = NULL;
-    int ret = argz_scan_ulong(&tmp, &end, argv[0]);
-    unsigned int val = (unsigned int)tmp;
-
-    if (ret || (tmp != (unsigned long)val)
-            || (end && end[0]))
-        return -1;
-
-    if (data)
-        *(unsigned int *)data = val;
-
-    return 1;
-}
-
-int
-argz_percent(void *data, int argc, char **argv)
-{
-    if (argc < 1 || !argv[0])
-        return -1;
-
-    unsigned long tmp = 0;
-    const char *end = NULL;
-    int ret = argz_scan_ulong(&tmp, &end, argv[0]);
-    unsigned int val = (unsigned int)tmp;
-
-    if (ret || (tmp > 100UL)
-            || (end && end[0] && (end[0] != '%' || end[1])))
-        return -1;
-
-    if (data)
-        *(unsigned int *)data = val;
-
-    return 1;
-}
-
-int
-argz_ushort(void *data, int argc, char **argv)
-{
-    if (argc < 1 || !argv[0])
-        return -1;
-
-    unsigned long tmp = 0;
-    const char *end = NULL;
-    int ret = argz_scan_ulong(&tmp, &end, argv[0]);
-    unsigned short val = (unsigned short)tmp;
-
-    if (ret || (tmp != (unsigned long)val)
-            || (end && end[0]))
-        return -1;
-
-    if (data)
-        *(unsigned short *)data = val;
-
-    return 1;
-}
-
-int
-argz_bytes(void *data, int argc, char **argv)
-{
-    if (argc < 1 || !argv[0])
-        return -1;
-
-    unsigned long tmp = 0;
-    const char *end = NULL;
-    int ret = argz_scan_ulong(&tmp, &end, argv[0]);
-    size_t val = tmp;
-
-    if (ret || (tmp != (unsigned long)val)
-            || (argz_scan_size(&val, end)))
-        return -1;
-
-    if (data)
-        *(size_t *)data = val;
-
-    return 1;
-}
-
-int
-argz_time(void *data, int argc, char **argv)
-{
-    if (argc < 1 || !argv[0])
-        return -1;
-
-    unsigned long val = 0;
-    const char *end = NULL;
-    int ret = argz_scan_ulong(&val, &end, argv[0]);
-
-    if (ret || argz_scan_time(&val, end))
-        return -1;
-
-    if (data)
-        *(unsigned long *)data = val;
-
-    return 1;
-}
-
-int
-argz_bool(void *data, int argc, char **argv)
-{
-    if (argc < 1 || !argv[0])
-        return -1;
-
-    int val = -1;
-
-    if (!argz_cmp("1|on|yes|true", argv[0]))
-        val = 1;
-
-    if (!argz_cmp("0|off|no|false", argv[0]))
-        val = 0;
-
-    if (val < 0)
-        return -1;
-
-    if (data)
-        *(int *)data = val;
-
-    return 1;
-}
-
-int
-argz_str(void *data, int argc, char **argv)
-{
-    if (argc < 1 || !argv[0])
-        return -1;
-
-    if (data)
-        *(char **)data = argv[0];
-
-    return 1;
-}
-
-int
-argz_addr(void *data, int argc, char **argv)
-{
-    if (argc < 1 || !argv[0])
-        return -1;
-
-    struct sockaddr_in sin = {
-        .sin_family = AF_INET
-    };
-
-    if (inet_pton(AF_INET, argv[0], &sin.sin_addr) == 1) {
-        *((struct sockaddr_in *)data) = sin;
-        return 1;
-    }
-
-    struct sockaddr_in6 sin6 = {
-        .sin6_family = AF_INET6
-    };
-
-    if (inet_pton(AF_INET6, argv[0], &sin6.sin6_addr) == 1) {
-        *((struct sockaddr_in6 *)data) = sin6;
-        return 1;
-    }
-
-    return -1;
-}
-
-int
-argz_option(void *data, int argc, char **argv)
-{
-    if (!data)
-        return 0;
-
-    struct argz *argz = (struct argz *)data;
-    int i = 0;
-
-    for (int k = 0; i < argc && argz[k].call; k++) {
-        if (!argz_cmp("help", argv[i])) {
-            argz[k].ret = 0;
-            return -3;
         }
-
-        if (argz[k].name) {
-            if (argz_cmp(argz[k].name, argv[i]))
+        int set = 0;
+        if (z) for (unsigned i = 0; z[i].name; i++) {
+            if (argz_cmp(&z[i], argv[a]))
                 continue;
-            if (argz[k].set && (argz[k].ret >= 0)
-                            && (argz[k].kind || !argz[k].data)) {
-                argz[k].ret = -2;
-                return -2;
+            unsigned k = 0;
+            if (!argz_is_available(z, i, &k)) {
+                fprintf(stderr, "Option %s is not compatible with %s\n",
+                        z[i].name, z[k].name);
+                return -1;
             }
-        } else {
-            if (argz[k].ret > 0)
-                continue;
+            int ret = z[i].call ? z[i].call(argc - a, argv + a, z[i].data) : 0;
+            if (ret < 0)
+                return ret;
+            z[i].set = set = 1;
+            a = z[i].call ? argc - ret : a + 1;
+            break;
         }
-
-        int s = i + !!argz[k].name;
-        int ret = argz[k].call(argz[k].data, argc - s, argv + s);
-
-        argz[k].set = argz[k].data ? argv[s] : argv[i];
-        argz[k].ret = ret;
-
-        if (ret <= -2)
-            return ret;
-
-        if (ret >= 0) {
-            k = -1;
-            i = s + ret;
+        if (!set) {
+            fprintf(stderr, "Option %s is unknown\n", argv[1]);
+            return -1;
         }
     }
-
-    return i ?: -1;
-}
-
-int
-argz_is_set(struct argz *argz, const char *name)
-{
-    for (int k = 0; argz[k].call; k++) {
-        if (argz_cmp(argz[k].name, name))
-            continue;
-
-        if (argz[k].data)
-            return argz[k].ret > 0;
-
-        return !argz_cmp(argz[k].set, name);
-    }
-
-    return 0;
-}
-
-void
-argz_dump(struct argz *argz, const char *name)
-{
-    for (int k = 0; argz[k].call; k++) {
-        argz_print("[DUMP] %s: name=%s kind=%s set=%s ret=%i\n",
-                   name, argz[k].name, argz[k].kind, argz[k].set, argz[k].ret);
-        if (argz[k].data && argz[k].call == argz_option)
-            argz_dump(argz[k].data, argz[k].name);
-    }
-}
-
-static int
-argz_print_error(struct argz *argz, const char *name)
-{
-    for (int k = 0; argz[k].call; k++) {
-        if (argz[k].data && argz[k].call == argz_option)
-            if (argz_print_error(argz[k].data, argz[k].name))
-                return 1;
-
-        const char *n = argz[k].name ?: name;
-
-        if (argz[k].ret == -1) {
-            if (!argz[k].set) {
-                argz_print("error: %s needs %s\n",
-                           n, argz[k].kind ?: "an argument");
-            } else {
-                argz_print("error: `%s' is not a valid %s for %s\n",
-                           argz[k].set, argz[k].kind ?: "argument", n);
-            }
-            return 1;
-        }
-
-        if (argz[k].ret == -2) {
-            argz_print("error: %s is already set to `%s'\n", n, argz[k].set);
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-static int
-argz_print_usage(struct argz *argz, int slen)
-{
-    if (!argz)
-        return 0;
-
-    int len = 0;
-
-    for (int k = 0; argz[k].call; k++) {
-        if (k && argz[k].name) {
-            argz_print("\n%*s", slen, "");
-            len = 0;
-        }
-
-        len += argz_print(" ");
-
-        if (argz[k].name)
-            len += argz_print("[");
-
-        if (argz[k].name && argz[k].kind) {
-            len += argz_print("%s %s", argz[k].name, argz[k].kind);
-        } else {
-            len += argz_print("%s", argz[k].name ?: argz[k].kind);
-        }
-
-        if (argz[k].call == argz_option)
-            len += argz_print_usage(argz[k].data, slen + len);
-
-        if (argz[k].name)
-            len += argz_print("]");
-    }
-
-    return len;
-}
-
-int
-argz(struct argz *argz, int argc, char **argv)
-{
-    if (argc < 2)
-        return 0;
-
-    int ret = argz_option(argz, argc - 1, argv + 1);
-
-    if (ret == argc - 1)
-        return 0;
-
-    if (argz_print_error(argz, argv[0]))
-        return 1;
-
-    if (ret > -2 && ret < argc - 1)
-        argz_print("error: `%s' is unknown\n", argv[ret == -1 ? 1 : ret + 1]);
-
-    int slen = argz_print("usage: %s", argv[0]);
-
-    if (slen > 40) {
-        slen = 12;
-        argz_print("\n%*s", slen, "");
-    }
-
-    argz_print_usage(argz, slen);
-    argz_print("\n");
-
-    return 1;
+    return argc - a;
 }

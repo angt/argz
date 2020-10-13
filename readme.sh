@@ -1,40 +1,70 @@
-gcc -o readme readme.c || exit
-
 cmd() {
-	echo \`\`\`
-	echo "$ $*"
-	"$@"
-	echo \`\`\`
+	( echo "$ $*"; "$@" 2>&1) | sed 's/^/    /'
 }
 
 cat > README.md <<EOF
 # arg(z)
 
-The minimal command line library.
+A minimal command line library, with out-of-the-box auto-completion.
 
-$(cmd cat readme.c)
+Compile [readme.c](./readme.c):
 
-Run it without argument and you get
+$(cmd gcc -o readme readme.c)
 
-$(cmd ./readme)
+Enable auto-competion for \`bash\`:
 
-A minimal help command is automatically generated
+    $ source comp/argz.bash
+    $ complete -F _argz ./readme
+
+A minimal help command is automatically generated:
 
 $(cmd ./readme help)
 
-Size and time accept suffixes
+Option \`size\` accepts some suffixes:
 
-$(cmd ./readme size 1G timeout 10s)
+$(cmd ./readme size 10m)
 
-Bad args are reported
+$(cmd ./readme size 10M)
 
-$(cmd ./readme size NaN timeout 10s)
+$(cmd ./readme size 10MiB)
 
-Duplicate options are allowed, and yes, I explicitly coded it.
+$(cmd ./readme size 10Mibytes)
 
-$(cmd ./readme timeout 1s timeout infinity)
+$(cmd ./readme size 10MB)
 
-Duplicate arguments are not allowed
+$(cmd ./readme size 10MBytes)
 
-$(cmd ./readme timeout 1s auto infinity)
+$(cmd ./readme size 10Mb)
+
+$(cmd ./readme size 10Mibits)
+
+Option \`time\` too:
+
+$(cmd ./readme time 10s)
+
+$(cmd ./readme time 10m)
+
+$(cmd ./readme time 10h)
+
+$(cmd ./readme time 10d)
+
+Malformed options are reported:
+
+$(cmd ./readme bad)
+
+$(cmd ./readme size)
+
+$(cmd ./readme size 0)
+
+$(cmd ./readme size NaN)
+
+$(cmd ./readme time 1y)
+
+Classic input formats are supported:
+
+$(cmd ./readme size -1)
+
+$(cmd ./readme size 0xFF)
+
+$(cmd ./readme size 010)
 EOF
