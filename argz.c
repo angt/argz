@@ -241,7 +241,7 @@ argz(int argc, char **argv, void *data)
     while (a < argc) {
         if (!strcmp(argv[a], "help")) {
             argz_print(z);
-            return -1;
+            return -2;
         }
         int set = 0;
         if (z) for (unsigned i = 0; z[i].name; i++) {
@@ -257,7 +257,7 @@ argz(int argc, char **argv, void *data)
             int ret = z[i].call ? z[i].call(argc - a, argv + a, z[i].data)
                                 : argc - a - 1;
             if (ret < 0) {
-                if (z[i].call == argz)
+                if (ret == -2)
                     argz_print(z);
                 return ret;
             }
