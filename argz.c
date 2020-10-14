@@ -253,17 +253,31 @@ argz(int argc, char **argv, void *data)
                         z[i].name, z[k].name);
                 return -1;
             }
-            int ret = z[i].call ? z[i].call(argc - a, argv + a, z[i].data) : 0;
-            if (ret < 0)
-                return ret;
             z[i].set = set = 1;
-            a = z[i].call ? argc - ret : a + 1;
+            int ret = z[i].call ? z[i].call(argc - a, argv + a, z[i].data)
+                                : argc - a - 1;
+            if (ret < 0) {
+                if (z[i].call == argz)
+                    argz_print(z);
+                return ret;
+            }
+            a = argc - ret;
             break;
         }
-        if (!set) {
-            fprintf(stderr, "Option %s is unknown\n", argv[1]);
-            return -1;
-        }
+        if (!set)
+            break;
     }
     return argc - a;
+}
+
+int
+argz_main(int argc, char **argv, struct argz *z)
+{
+    int ret = argz(argc, argv, z);
+
+    if (ret > 0 && argc > ret) {
+        fprintf(stderr, "Option %s is unknown\n", argv[argc - ret]);
+        return -1;
+    }
+    return ret;
 }

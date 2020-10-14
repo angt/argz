@@ -28,7 +28,7 @@ main(int argc, char **argv)
         {"file", "a file value", argz_path, &file},
         {0}};
 
-    int err = argz(argc, argv, z);
+    int err = argz_main(argc, argv, z);
 
     if (err)
         return err;

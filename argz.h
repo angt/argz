@@ -36,3 +36,5 @@ int argz_path (int, char **, void *);
 int argz_ull  (int, char **, void *);
 int argz_str  (int, char **, void *);
 int argz      (int, char **, void *);
+
+int argz_main (int, char **, struct argz *);
