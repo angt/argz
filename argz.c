@@ -122,7 +122,12 @@ argz_ull(int argc, char **argv, void *data)
     struct argz_ull *z = (struct argz_ull *)data;
 
     if (argz_help_me(argc, argv)) {
-        printf("%llu\n", z->value);
+        unsigned long long value = z->value;
+        if (z->min && (z->min > z->value))
+            value = z->min;
+        if (z->max && (z->max < z->value))
+            value = z->max;
+        printf("%llu\n", value);
     } else if (argc > 1) {
         char *end = NULL;
         z->value = (errno = 0, strtoull(argv[1], &end, z->base));
