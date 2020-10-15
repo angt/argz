@@ -9,7 +9,7 @@
 #include "argz.h"
 
 #ifndef ARGZ_LEN
-#define ARGZ_LEN 10
+#define ARGZ_LEN 14
 #endif
 
 int
@@ -67,7 +67,7 @@ argz_is_set(struct argz *z, const char *name)
 void
 argz_print_help(const char *name, const char *help)
 {
-    printf("    %-*s    %s\n", ARGZ_LEN, name, help ? help : "");
+    printf("  %-*s  %s\n", ARGZ_LEN, name, help ? help : "");
 }
 
 void

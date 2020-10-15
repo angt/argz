@@ -14,10 +14,10 @@ Enable auto-competion for `bash`:
 A minimal help command is automatically generated:
 
     $ ./readme help
-        size          a size value
-        time          a time value
-        percent       a custom percent value
-        file          a file value
+      size            a size value
+      time            a time value
+      percent         a custom percent value
+      file            a file value
 
 Option `size` accepts some suffixes:
 
