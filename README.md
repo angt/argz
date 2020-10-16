@@ -2,7 +2,7 @@
 
 A minimal command line library, with out-of-the-box auto-completion.
 
-Compile the libray:
+Compile the library:
 
     $ make shared # to make a shared library (.so)
     $ make static # to make a static library (.a)
