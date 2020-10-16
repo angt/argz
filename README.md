@@ -2,9 +2,16 @@
 
 A minimal command line library, with out-of-the-box auto-completion.
 
-Compile [readme.c](./readme.c):
+Compile the libray:
 
-    $ gcc -o readme readme.c
+    $ make shared # to make a shared library (.so)
+    $ make static # to make a static library (.a)
+    $ make # to build both
+
+Compile the [readme.c](./readme.c)
+
+    $ make exemple_shared # to compile with the shared library
+    $ make exemple_static # to compile with the static library
 
 Enable auto-competion for `bash`:
 
