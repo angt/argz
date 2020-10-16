@@ -1,4 +1,6 @@
-#include "argz.c"
+#include <string.h>
+#include <stdio.h>
+#include "argz.h"
 
 int
 readme_percent_suffix(struct argz_ull *ull, const char *s)
