@@ -67,4 +67,8 @@ $(cmd ./readme size -1)
 $(cmd ./readme size 0xFF)
 
 $(cmd ./readme size 010)
+
+Duplicates are detected:
+
+$(cmd ./readme size 10 size 20)
 EOF

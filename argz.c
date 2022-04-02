@@ -32,7 +32,7 @@ argz_cmp(struct argz *z, const char *name)
 {
     if (!strcmp(z->name, name))
         return 0;
-    if (z->alt) for (unsigned k = 0; z->alt[k]; k++) {
+    if (z->alt) for (int k = 0; z->alt[k]; k++) {
         if (!strcmp(z->alt[k], name))
             return 0;
     }
@@ -40,11 +40,11 @@ argz_cmp(struct argz *z, const char *name)
 }
 
 static int
-argz_is_available(struct argz *z, unsigned i, unsigned *ret)
+argz_is_available(struct argz *z, int i, int *ret)
 {
     if (z[i].set)
         return 0;
-    if (z[i].grp) for (unsigned k = 0; z[k].name; k++) {
+    if (z[i].grp) for (int k = 0; z[k].name; k++) {
         if (z[k].set && z[k].grp == z[i].grp) {
             if (ret) *ret = k;
             return 0;
@@ -56,7 +56,7 @@ argz_is_available(struct argz *z, unsigned i, unsigned *ret)
 int
 argz_is_set(struct argz *z, const char *name)
 {
-    if (z) for (unsigned i = 0; z[i].name; i++) {
+    if (z) for (int i = 0; z[i].name; i++) {
         if (argz_cmp(&z[i], name))
             continue;
         return z[i].set;
@@ -244,13 +244,18 @@ argz(int argc, char **argv, void *data)
             return -2;
         }
         int set = 0;
-        if (z) for (unsigned i = 0; z[i].name; i++) {
+        if (z) for (int i = 0; z[i].name; i++) {
             if (argz_cmp(&z[i], argv[a]))
                 continue;
-            unsigned k = 0;
+            int k = -1;
             if (!argz_is_available(z, i, &k)) {
-                fprintf(stderr, "Option %s is not compatible with %s\n",
-                        z[i].name, z[k].name);
+                if (k == -1) {
+                    fprintf(stderr, "Option %s is already set\n",
+                            z[i].name);
+                } else {
+                    fprintf(stderr, "Option %s is not compatible with %s\n",
+                            z[i].name, z[k].name);
+                }
                 return -1;
             }
             z[i].set = set = 1;

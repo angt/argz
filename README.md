@@ -86,3 +86,8 @@ Classic input formats are supported:
 
     $ ./readme size 010
     size=8 time=0 percent=50 file=
+
+Duplicates are detected:
+
+    $ ./readme size 10 size 20
+    Option size is already set
