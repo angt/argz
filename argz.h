@@ -18,7 +18,7 @@ struct argz {
     int (*call)(int, char **, void *);
     void *data;
     const char *const *alt;
-    unsigned grp;
+    int grp;
     int set;
 };
 

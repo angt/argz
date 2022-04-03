@@ -44,7 +44,7 @@ argz_is_available(struct argz *z, int i, int *ret)
 {
     if (z[i].set)
         return 0;
-    if (z[i].grp) for (int k = 0; z[k].name; k++) {
+    if (z[i].grp > 0) for (int k = 0; z[k].name; k++) {
         if (z[k].set && z[k].grp == z[i].grp) {
             if (ret) *ret = k;
             return 0;
@@ -271,6 +271,12 @@ argz(int argc, char **argv, void *data)
         }
         if (!set)
             break;
+    }
+    if (z) for (int i = 0; z[i].name; i++) {
+        if (z[i].set || z[i].grp >= 0)
+            continue;
+        fprintf(stderr, "Option %s is mandatory\n", z[i].name);
+        return -1;
     }
     return argc - a;
 }
